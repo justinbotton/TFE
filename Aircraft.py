@@ -9,7 +9,7 @@ from AircraftId import ident
 from AircraftName import name
 from AircraftSpeed import speed
 from AircraftAltitude import altitude
-from AircraftPosition import longitude, latitude
+from AircraftPosition import longitude, latitude, unaLatitude, unaLongitude
 
 
 # decode the type code
@@ -66,20 +66,40 @@ def aircraftDict(dictionary, ident, frame):
         dictionary[ident] = {}
     if parity == "0":
         dictionary[ident][0] = frame
+        dictionary[ident]['evenTime'] = datetime.datetime.now()
         sys.stdout.write(" EVEN ")
         sys.stdout.flush()
     elif parity == "1":
         dictionary[ident][1] = frame
+        dictionary[ident]['oddTime'] = datetime.datetime.now()
         sys.stdout.write(" ODD ")
         sys.stdout.flush()
-    if dictionary[ident].has_key(0) and dictionary[ident].has_key(1):
-        if dictionary[ident][0] != "" and dictionary[ident][1] != "":
+    if dictionary[ident].has_key(0) and dictionary[ident].has_key(1) and not dictionary[ident].has_key('lat'):
+        evenTime = dictionary[ident]['evenTime']
+        oddTime = dictionary[ident]['oddTime']
+        diffTime = 0
+        if evenTime > oddTime:
+            diffTime = (evenTime - oddTime).total_seconds()
+        else:
+            diffTime = (oddTime - evenTime).total_seconds()
+        if diffTime < 55:
+            print(diffTime)
             even = dictionary[ident][0]
             odd = dictionary[ident][1]
             lat = latitude(even, odd)
             lon = longitude(even, odd, lat)
-            dictionary[ident][0] = ""
-            dictionary[ident][1] = ""
+            dictionary[ident]['lat'] = lat
+            dictionary[ident]['lon'] = lon
+    elif dictionary[ident].has_key('lat') and dictionary[ident].has_key('lon'):
+        frame = ""
+        if parity == "0":
+            frame = dictionary[ident][0]
+        elif parity == "1":
+            frame = dictionary[ident][1]
+        lat = unaLatitude(dictionary[ident]['lat'], frame, parity)
+        lon = unaLongitude(dictionary[ident]['lon'], frame, parity, lat)
+        dictionary[ident]['lat'] = lat
+        dictionary[ident]['lon'] = lon
     return lat, lon
 # end aircraftDict
 

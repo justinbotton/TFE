@@ -16,6 +16,20 @@ def latitude(frameEven, frameOdd):
 # end latitude
 
 
+def unaLatitude(prevLat, frame, parity):
+    latCpr, t = hex2dec(frame[13:22], "lat")
+    latCpr = latCpr / 131072.0
+    dLat = 0
+    if parity == "0":
+        dLat = 360.0 / 60.0
+    elif parity == "1":
+        dLat = 360.0 / 59.0
+    j = math.floor(prevLat / dLat) + math.floor((math.fmod(prevLat, dLat) / dLat) - latCpr + 0.5)
+    latitude = dLat * (j + latCpr)
+    return round(latitude, 4)
+
+
+
 # main call or longitude
 # @param frameEven : adsb even frame
 # @param frameOdd : adsb odd frame
@@ -29,6 +43,26 @@ def longitude(frameEven, frameOdd, latitude):
     return longitudeCalc(even, odd, latitude, t0, t1)
 # en longitude
 
+
+
+def unaLongitude(prevLon, frame, parity, lat):
+    dLon = 0
+    lonCpr, t = hex2dec(frame[13:22], "long")
+    lonCpr = lonCpr / 131072.0
+    nlLat = cprNL(lat)
+    if parity == "0":
+        if nlLat > 0:
+            dLon = 360.0 / nlLat
+        elif nlLat == 0:
+            dLon = 360.0
+    elif parity == "1":
+        if nlLat - 1 > 0:
+            dLon = 360.0 / (nlLat - 1)
+        elif nlLat - 1 == 0:
+            dLon = 360.0
+    m = math.floor(prevLon / dLon) + math.floor((math.fmod(prevLon, dLon) / dLon) - lonCpr + 0.5)
+    longitude = dLon * (m + lonCpr)
+    return round(longitude, 4)
 
 # parsing hexa frame to get 17 bin numbers and parsing them to get the value
 # @param frame : adsb frame
