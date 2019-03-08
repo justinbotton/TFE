@@ -82,8 +82,9 @@ def aircraftDict(dictionary, ident, frame):
             dictionary[ident][1] = ""
     return lat, lon
 # end aircraftDict
+# test test
 
-
+print("test")
 dictionary = {}
 q = Queue.Queue()
 
