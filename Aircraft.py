@@ -82,7 +82,7 @@ def aircraftDict(dictionary, ident, frame):
             diffTime = (evenTime - oddTime).total_seconds()
         else:
             diffTime = (oddTime - evenTime).total_seconds()
-        if diffTime < 55:
+        if diffTime < 35:
             print(diffTime)
             even = dictionary[ident][0]
             odd = dictionary[ident][1]
