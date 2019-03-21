@@ -1,13 +1,13 @@
 #Justin Botton EPHEC 2019
 
+import sqlite3 as lite
 import sys
-import threading
 import Queue
 import datetime
 from AircraftThread import Affiche
 from AircraftId import ident
 from AircraftName import name
-from AircraftSpeed import speed
+from AircraftSpeed import speed, direction
 from AircraftAltitude import altitude
 from AircraftPosition import longitude, latitude, unaLatitude, unaLongitude
 
@@ -106,6 +106,12 @@ def aircraftDict(dictionary, ident, frame):
 
 dictionary = {}
 q = Queue.Queue()
+con = None
+try:
+    con = lite.connect("/var/www/html/database/adsb")
+    cur = con.cursor()
+except lite.Error, e:
+    sys.exit(1)
 
 while True:
     line = sys.stdin.readline()
@@ -116,25 +122,28 @@ while True:
         if isConsistent:
             tc = typeCode(frame)
             identifiant = ident(frame)
-            sys.stdout.write(datetime.datetime.now().strftime("%d-%m-%Y %H:%M:%S") + " : " + identifiant + " " + str(tc) + " ")
-            sys.stdout.flush()
+            with con:
+                cur.execute("INSERT INTO tb_Aircraft(modeS) SELECT '"+identifiant+"' WHERE NOT EXISTS(SELECT modeS FROM tb_Aircraft WHERE tb_Aircraft.modeS = '"+identifiant+"')")
             if tc == 19:
                 aircraftSpeed, heading, vertDir, vertRate, vertSrc = speed(frame)
-                sys.stdout.write(str(aircraftSpeed) + " km/h ")
-                sys.stdout.write(str(heading) + " deg ")
-                sys.stdout.write(str(vertDir) + "\n") #" " + str(vertRate) + " fpm (" + vertSrc + ") \n")
-                sys.stdout.flush()
+                coord = direction(heading)
+                with con:
+                    time = str(datetime.datetime.now())
+                    cur.execute("INSERT INTO tb_Vitesse VALUES('"+time+"', '"+identifiant+"', "+str(aircraftSpeed)+")")
+                    cur.execute("INSERT INTO tb_Dir VALUES('"+time+"', '"+identifiant+"', "+str(heading)+", '"+str(coord)+"', '"+str(vertDir)+"')")
+                sys.stdout.write("ViTESSE \n")
             elif 9 <= tc <= 18:
                 alt = altitude(frame)
                 lat, lon = aircraftDict(dictionary, identifiant, frame)
-                sys.stdout.write(str(alt) + " meters lat : " + str(lat) + " long : " + str(lon))
+                time = str(datetime.datetime.now());
+                with con:
+                    cur.execute("INSERT INTO tb_Position(time, modeS, altitude, latitude, longitude) VALUES('"+time+"', '"+identifiant+"', "+str(alt)+", "+str(lat)+", "+str(lon)+")")
+                sys.stdout.write("Position \n")
                 sys.stdout.flush()
             elif 1 <= tc <= 4:
                 aircraftName = name(frame)
-                sys.stdout.write(aircraftName + "\n")
-                sys.stdout.flush()
-            sys.stdout.write("\n")
+                with con:
+                    cur.execute("UPDATE tb_Aircraft SET name='"+aircraftName+"' WHERE modeS='"+identifiant+"' AND name IS NULL")
+                sys.stdout.write("NAME \n")
 
-        #condition.acquire()
-        #condition.notify()
 # EOF

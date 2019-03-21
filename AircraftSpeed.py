@@ -65,8 +65,7 @@ def heading(Vwe, Vsn):
     heading = math.atan2(Vwe, Vsn) * (360.0 / (2 * math.pi))
     if heading < 0:
         heading = heading + 360.0
-    dir = direction(heading)
-    return dir + " " + str(round(heading, 2))
+    return heading
 # end heading
 
 
