@@ -1,27 +1,34 @@
 # Justin Botton EPHEC 2019
 
-# This class decodes the ADS-B frames
-
 import math
 import datetime
+
+# This class decodes the ADS-B frames
 
 
 class FrameDecode:
 
     # init FrameDecode
-    # @param frame : ADS-B frame to decode
+    # @param frame str : ADS-B frame to decode
+    # @param position_frame str : ADS-B frame added when decoding Aircraft's position
     def __init__(self, frame, position_frame=None):
         if position_frame is not None:
             self.frame_even = frame
             self.frame_odd = position_frame
         self.frame = frame
+    # end __init__
 
+    # Getters
+
+    # get the frame of self
     def get_frame(self):
         return self.frame
 
+    # get the frame_even of self
     def get_frame_even(self):
         return self.frame_even
 
+    # get the frame_odd of self
     def get_frame_odd(self):
         return self.frame_odd
 
@@ -49,8 +56,8 @@ class FrameDecode:
 
     # Mode S
 
-    # decode the mode_s in a frame
-    # @return mode_s str : Aircraft's mode s transponder value
+    # decode the mode_s of self
+    # @return mode_s str : Aircraft's mode_s transponder value
     def decode_mode_s(self):
         mode_s = str(self.frame[2:8])
         return mode_s
@@ -70,21 +77,21 @@ class FrameDecode:
     # Name
 
     # decode the Aircraft's name
-    # @return name str : Aircraft's name
-    def decode_name(self):
+    # @return last_flight_name str : Aircraft's name
+    def decode_last_flight_name(self):
         frame = self.frame[10:22]
         output = ""
         binary = "{0:048b}".format(int(frame, 16))  # parsing the hexa frame to binary
         for i in range(0, 48, 6):
             dec = int(binary[i:i + 6], 2)
-            output += self.name_dec2char(dec)
+            output += self.last_flight_name_dec2char(dec)
         return output
-    # end decode_name
+    # end decode_last_flight_name
 
-    # dictionnary for decoding Aircraft's name
+    # dictionary for decoding Aircraft's name
     # @param dec_number : decimal number
     # @return index[dec_number] char : value corresponding to the given number
-    def name_dec2char(self, dec_number):
+    def last_flight_name_dec2char(self, dec_number):
         index = '#ABCDEFGHIJKLMNOPQRSTUVWXYZ#####_###############0123456789######'
         return index[dec_number]
     # end dec2char
@@ -122,6 +129,7 @@ class FrameDecode:
     # @return speed_kmh float : Aircraft's speed in km/h
     # @return heading_degrees float : Aircraft's heading in degrees
     # @return heading_compass str : Aircraft's heading on compass
+    # @return tilt str : Aircraft's tilt
     def decode_speed_heading(self):
         s_ew, v_ew, s_ns, v_ns, vr_src, s_vr, vr = self.speed_heading_hex2dec()
         v_we = 0
@@ -162,7 +170,7 @@ class FrameDecode:
         return s_ew, v_ew, s_ns, v_ns, vr_src, s_vr, vr
     # end speed_heading_hex2dec
 
-    # calculate the speed in kmh/
+    # calculate the speed in km/h
     # @param v_we int : West East velocity
     # @param v_sn int : South North velocity
     # @return speed_kmh float : Aircraft's speed
@@ -239,6 +247,12 @@ class FrameDecode:
 
     # Position
 
+    # make dictionary entries when a position frame is decoded and calculate
+    # the position when both even and odd frames are in the dictionary
+    # @param dict_position dictionary : keeps record of Aircraft's position frames and previous latitude and longitude
+    # @param mode_s str : Aircraft's mode_s transpoder value
+    # @return lat float : Aircraft's latitude
+    # @return lon float : Aircraft's longitude
     def decode_position(self, dict_position, mode_s):
         frame = self
         lat = 0
@@ -273,14 +287,18 @@ class FrameDecode:
             dict_position[mode_s]['lat'] = lat
             dict_position[mode_s]['lon'] = lon
         return lat, lon
+    # end decode_position
 
+    # get the parity of a position frame
+    # @return parity int : 0 if this frame is even, 1 if odd
     def position_parity(self):
         frame = self.frame
         parity = "{0:048b}".format(int(frame, 16))[53]
         return parity
+    # end position_parity
 
     # parsing hexa frame to get 17 bin numbers and parsing them to get the value
-    # @param frame : adsb frame
+    # @param frame : ADS-B frame
     # @param coord : if its latitude or longitude
     # @return : latitude / longitude decimal value
     def position_hex2dec(self, frame, coord):
@@ -294,6 +312,7 @@ class FrameDecode:
         return output, t
     # end hex2dec
 
+    # check latitude
     def cpr_n(self, lat, is_odd):
         nl = self.cpr_nl(lat) - is_odd
         if nl > 1:
@@ -301,6 +320,7 @@ class FrameDecode:
         return 1
     # en cpr_n
 
+    # check if a new latitude is consistent with the last one
     def cpr_nl(self, lat):
         try:
             nz = 15
@@ -315,7 +335,8 @@ class FrameDecode:
 
     # Latitude
 
-    # decode the Aircraft's latitude latitude
+    # decode the Aircraft's latitude
+    # @return latitude float : Aircraft's latitude
     def latitude(self):
         even, t0 = self.position_hex2dec(self.frame_even[13:22], "lat")
         odd, t1 = self.position_hex2dec(self.frame_odd[13:22], "lat")
@@ -325,15 +346,15 @@ class FrameDecode:
     # en latitude
 
     # calculate the latitude
-    # @param latEven_cpr : decimal latitude value from even frame
-    # @param latOdd_cpr : decimal latitude vlaue from odd frame
-    # @param t0 : time even frame
-    # @param t1 : time odd frame
-    # @return latitude : Aircraft latitude
-    def latitude_calc(self, lateven_cpr, latodd_cpr, t0, t1):
-        j = math.floor((59 * lateven_cpr) - (60 * latodd_cpr) + 0.5)
-        latitude_even = (360.0 / 60) * (math.fmod(j, 60) + lateven_cpr)
-        latitude_odd = (360.0 / 59) * (math.fmod(j, 59) + latodd_cpr)
+    # @param latEven_cpr  float : latitude value from even frame
+    # @param latOdd_cpr float : latitude vlaue from odd frame
+    # @param t0 int : time even frame
+    # @param t1 int : time odd frame
+    # @return latitude float : Aircraft latitude
+    def latitude_calc(self, lat_even_cpr, lat_odd_cpr, t0, t1):
+        j = math.floor((59 * lat_even_cpr) - (60 * lat_odd_cpr) + 0.5)
+        latitude_even = (360.0 / 60) * (math.fmod(j, 60) + lat_even_cpr)
+        latitude_odd = (360.0 / 59) * (math.fmod(j, 59) + lat_odd_cpr)
         if latitude_even >= 270:
             latitude_even = latitude_even - 360
         if latitude_odd >= 270:
@@ -346,6 +367,9 @@ class FrameDecode:
     # end latitude_calc
 
     # calculate the latitude with the previous one, unambigous latitude
+    # @param prev_lat float : Aircraft's previous latitude
+    # @param parity int : position frame parity
+    # @return latitude float : Aircraft's latitude
     def una_latitude(self, prev_lat, parity):
         lat_cpr, t = self.position_hex2dec(self.frame[13:22], "lat")
         lat_cpr = lat_cpr / 131072.0
@@ -362,10 +386,8 @@ class FrameDecode:
     # Longitude
 
     # main call or longitude
-    # @param frame_even : ADS-B even frame
-    # @param frame_odd : ADS-B odd frame
-    # @param latitude : latitude previously calculated
-    # @return : Aircraft longitude
+    # @param latitude float : latitude previously calculated with the same frames
+    # @return longitude float : Aircraft longitude
     def longitude(self, latitude):
         even, t0 = self.position_hex2dec(self.frame_even[13:22], "long")
         odd, t1 = self.position_hex2dec(self.frame_odd[13:22], "long")
@@ -375,11 +397,12 @@ class FrameDecode:
     # en longitude
 
     # calculate the longitude
-    # @param lon_even_cpr : decimal longitude value from even frame
-    # @param lon_odd_cpr : decimal longitude value from odd frame
-    # @param lat : latitude previously calculated
-    # @param t0 : time even frame
-    # @param t1 : time odd frame
+    # @param lon_even_cpr float: longitude value from even frame
+    # @param lon_odd_cpr float : longitude value from odd frame
+    # @param lat float : latitude previously calculated with the same frames
+    # @param t0 int : time even frame
+    # @param t1 int : time odd frame
+    # @return longitude float : Aircraft's longitude
     def longitude_calc(self, lon_even_cpr, lon_odd_cpr, lat, t0, t1):
         j = math.floor(lon_even_cpr * (self.cpr_nl(lat) - 1) - lon_odd_cpr * self.cpr_nl(lat) + 0.5)
         if t0 >= t1:
@@ -393,6 +416,11 @@ class FrameDecode:
         return round(lon, 4)
     # end longitude_calc
 
+    # calculate the longitude with the previous one, unambigous longitude
+    # @param prev_lon float : Aircraft's previous longitude
+    # @param parity int : position frame parity
+    # @param lat float : latitude previously calculated with the same position frames
+    # @return longitude float : Aircraft's longitude
     def una_longitude(self, prev_lon, parity, lat):
         d_lon = 0
         lon_cpr, t = self.position_hex2dec(self.frame[13:22], "long")
@@ -411,5 +439,6 @@ class FrameDecode:
         m = math.floor(prev_lon / d_lon) + math.floor((math.fmod(prev_lon, d_lon) / d_lon) - lon_cpr + 0.5)
         longitude = d_lon * (m + lon_cpr)
         return round(longitude, 4)
+    # end una_longitude
 
 # EOF

@@ -6,13 +6,15 @@
 class Aircraft:
 
     # init Aircraft
-    # @param mode_s : Aircraft's transponder value
-    # @param name : Aircraft's name
-    # @param speed : Aircraft's speed
-    # @param heading_degrees : Aircraft's heading in degrees
-    # @param heading_compass : Aircraft's heading on compass
-    # @param direction : Aircraft's direction according to points of compass
-    # @param tilt : Aircraft's tilt, up or down
+    # @param mode_s str : Aircraft's transponder value
+    # @param name str : Aircraft's name
+    # @param speed [] : Aircraft's speed
+    # @param heading_degrees [] : Aircraft's heading in degrees
+    # @param heading_compass [] : Aircraft's heading on compass
+    # @param tilt [] : Aircraft's tilt, up or down
+    # @param altitude [] : Aircraft's altitude in meters
+    # @param latitude [] : Aircraft's latitude
+    # @param longitude [] : Aircraft's longitude
     def __init__(self, mode_s, last_flight_name, speed, heading_degrees, heading_compass, tilt, altitude, latitude, longitude):
         self.mode_s = mode_s
         self.last_flight_name = last_flight_name
