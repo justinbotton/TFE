@@ -297,6 +297,7 @@ class FrameDecode:
         return output, t
     # end hex2dec
 
+    # method based on https://github.com/junzis/pyModeS/blob/master/pyModeS/decoder/common.py
     def cpr_n(self, lat, is_odd):
         nl = self.cpr_nl(lat) - is_odd
         if nl > 1:
@@ -304,6 +305,7 @@ class FrameDecode:
         return 1
     # en cpr_n
 
+    # method based on https://github.com/junzis/pyModeS/blob/master/pyModeS/decoder/common.py
     def cpr_nl(self, lat):
         try:
             nz = 15
